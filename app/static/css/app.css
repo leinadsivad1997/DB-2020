@@ -1,0 +1,35 @@
+body {
+  padding-top: 5rem;
+  font-family: "Montserrat", "Open Sans";
+}
+
+/************************   Header      ******************************/
+
+nav.navbar.navbar-expand-lg.fixed-top {
+  background: #b3afc8;
+}
+
+header a {
+  color: #271e53;
+}
+
+a.navbar-brand.nh:hover {
+  color: #271e53;
+}
+
+a.nav-link:hover {
+  color: white;
+}
+
+.navbar-expand-lg .navbar-nav a.nav-link {
+  padding-left: 2.5rem;
+}
+
+header a.navbar-brand,
+header img.d-inline-block.align-top.mt-5 {
+  display: inline-block;
+}
+
+img.d-inline-block.align-top {
+  width: 32px;
+}
