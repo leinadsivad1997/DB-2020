@@ -8,9 +8,16 @@ This file creates your application.
 from app import app, db, login_manager
 from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_user, logout_user, current_user, login_required
-from app.forms import LoginForm
-from app.models import UserProfile
+from app.forms import LoginForm, Registration
+import mysql.connector
 
+
+mydb = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    passwd="",
+    database="mybank2020"
+)
 
 ###
 # Routing for your application.
@@ -50,12 +57,46 @@ def login():
             return redirect(url_for("home"))  # they should be redirected to a secure-page route instead
     return render_template("login.html", form=form)
 
+@app.route('/register', methods=["GET", "POST"])
+def registerUser():
+    """Render website's Registration Form."""
+    form = Registration()
+    mycursor = mydb.cursor()
+
+    if request.method == "POST"  and form.validate_on_submit():
+        f_name = form.f_name.data
+        l_name = form.l_name.data
+        username = form.username.data
+        email = form.email.data
+        password = form.password.data
+
+        sql = "INSERT INTO user (f_name, l_name, username, email, password) VALUES (%s, %s, %s, %s, %s)"
+        val = (f_name, l_name, username,
+            email, password)
+
+        mycursor.execute(sql, val)
+        mydb.commit()
+
+        print(mycursor.rowcount, "record inserted.")
+        flash('Successfully registered', 'success')
+
+        # Logs in a newly registered user
+        # login_user(user)
+
+        return redirect(url_for("home"))
+
+    # Flash errors in form and redirects to Register Form
+    flash_errors(form)
+    return render_template('register.html', form=form)
+
 
 # user_loader callback. This callback is used to reload the user object from
 # the user ID stored in the session
 @login_manager.user_loader
 def load_user(id):
-    return UserProfile.query.get(int(id))
+    user = "SELECT user_id from user where user_id=int(id)"
+    print(user)
+    # return UserProfile.query.get(int(id))
 
 ###
 # The functions below should be applicable to all Flask apps.
@@ -67,6 +108,17 @@ def send_text_file(file_name):
     """Send your static text file."""
     file_dot_text = file_name + '.txt'
     return app.send_static_file(file_dot_text)
+
+# Flash errors from the form if validation fails
+
+
+def flash_errors(form):
+    for field, errors in form.errors.items():
+        for error in errors:
+            flash(u"Error in the %s field - %s" % (
+                getattr(form, field).label.text,
+                error
+            ), 'danger')
 
 
 @app.after_request
