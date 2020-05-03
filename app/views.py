@@ -5,8 +5,8 @@ Werkzeug Documentation:  http://werkzeug.pocoo.org/documentation/
 This file creates your application.
 """
 
-from app import app, db, login_manager
-from flask import render_template, request, redirect, url_for, flash
+from app import app, login_manager
+from flask import render_template, request, redirect, url_for, flash, session
 from flask_login import login_user, logout_user, current_user, login_required
 from app.forms import LoginForm, Registration
 import mysql.connector
@@ -18,6 +18,8 @@ mydb = mysql.connector.connect(
     passwd="",
     database="mybank2020"
 )
+
+mycursor = mydb.cursor()
 
 ###
 # Routing for your application.
@@ -35,28 +37,6 @@ def about():
     return render_template('about.html')
 
 
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    form = LoginForm()
-    if request.method == "POST":
-        # change this to actually validate the entire form submission
-        # and not just one field
-        if form.username.data:
-            # Get the username and password values from the form.
-
-            # using your model, query database for a user based on the username
-            # and password submitted. Remember you need to compare the password hash.
-            # You will need to import the appropriate function to do so.
-            # Then store the result of that query to a `user` variable so it can be
-            # passed to the login_user() method below.
-
-            # get user id, load into session
-            login_user(user)
-
-            # remember to flash a message to the user
-            return redirect(url_for("home"))  # they should be redirected to a secure-page route instead
-    return render_template("login.html", form=form)
-
 @app.route('/register', methods=["GET", "POST"])
 def registerUser():
     """Render website's Registration Form."""
@@ -70,20 +50,24 @@ def registerUser():
         email = form.email.data
         password = form.password.data
 
-        sql = "INSERT INTO user (f_name, l_name, username, email, password) VALUES (%s, %s, %s, %s, %s)"
-        val = (f_name, l_name, username,
-            email, password)
+        mycursor.execute('SELECT * FROM user WHERE username = %s', (username,))
+        user = mycursor.fetchone()
+        print(user)
+        if user:
+            flash(u'This username is already taken', 'error')
+        else:
+            sql = "INSERT INTO user (f_name, l_name, username, email, password) VALUES (%s, %s, %s, %s, %s)"
+            val = (f_name, l_name, username,
+                email, password)
 
-        mycursor.execute(sql, val)
-        mydb.commit()
+            mycursor.execute(sql, val)
+            mydb.commit()
 
-        print(mycursor.rowcount, "record inserted.")
-        flash('Successfully registered', 'success')
+            print(mycursor.rowcount, "record inserted.")
+            print("1 record inserted, ID:", mycursor.lastrowid)
+            flash('Successfully registered', 'success')
 
-        # Logs in a newly registered user
-        # login_user(user)
-
-        return redirect(url_for("home"))
+            return redirect(url_for("home"))
 
     # Flash errors in form and redirects to Register Form
     flash_errors(form)
@@ -93,10 +77,75 @@ def registerUser():
 # user_loader callback. This callback is used to reload the user object from
 # the user ID stored in the session
 @login_manager.user_loader
-def load_user(id):
-    user = "SELECT user_id from user where user_id=int(id)"
-    print(user)
-    # return UserProfile.query.get(int(id))
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+@app.route('/login/', methods=['GET', 'POST'])
+def login():
+    form = LoginForm()
+    mycursor = mydb.cursor()
+
+    # Check if "username" and "password" POST requests exist (user submitted form)
+    if request.method == 'POST' and 'username' in request.form and 'password' in request.form:
+        # Create variables for easy access
+        username = request.form['username']
+        password = request.form['password']
+
+        # Check if user exists using MySQL
+        # cursor = mysql.connection.cursor(mycursor.DictCursor)
+        mycursor.execute('SELECT * FROM user WHERE username = %s AND password = %s', (username, password,))
+        # Fetch one record and return result
+        user = mycursor.fetchone()
+        # If user exists in users table in out database
+
+        if user:
+            # Create session data, we can access this data in other routes
+            session['loggedin'] = True
+            session['id'] = user[0]
+            session['username'] = user[3]
+            # Redirect to home page
+            flash('Logged in Succesfully', 'success')
+        else:
+            # user does not exist or username/password incorrect
+            flash(u'Invalid Credentials', 'error')
+
+    return render_template("login.html", form=form)
+
+@app.route('/logout')
+def logout():
+    # Remove session data, this will log the user out
+   session.pop('loggedin', None)
+   session.pop('id', None)
+   session.pop('username', None)
+   flash('Logged out Succesfully', 'success')
+#    print(session['loggedin'])
+   # Redirect to login page
+   return redirect(url_for('home'))
+
+# http://localhost:5000/pythinlogin/profile - this will be the profile page, only accessible for loggedin users
+@app.route('/pythonlogin/profile')
+def profile():
+    # Check if user is loggedin
+    if 'loggedin' in session:
+        # We need all the user info for the user so we can display it on the profile page
+        mycursor.execute('SELECT * FROM users WHERE id = %s', (session['id'],))
+        user = mycursor.fetchone()
+        # Show the profile page with user info
+        return render_template('profile.html', user=user)
+    # User is not loggedin redirect to login page
+    return redirect(url_for('login'))
+
+
+# http://localhost:5000/pythinlogin/home - this will be the home page, only accessible for loggedin users
+@app.route('/pythonlogin/home')
+def pyhome():
+    # Check if user is loggedin
+    if 'loggedin' in session:
+        # User is loggedin show them the home page
+        return render_template('home.html', username=session['username'])
+    # User is not loggedin redirect to login page
+    return redirect(url_for('login'))
+
 
 ###
 # The functions below should be applicable to all Flask apps.
