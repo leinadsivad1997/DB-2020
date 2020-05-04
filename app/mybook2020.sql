@@ -1,6 +1,6 @@
-drop database IF EXISTS mybank2020;
-create database mybank2020;
-use mybank2020;
+drop database IF EXISTS mybook2020;
+create database mybook2020;
+use mybook2020;
 
 drop table IF EXISTS user;
 drop table IF EXISTS friend_of;
@@ -96,4 +96,5 @@ create table UCG (
     foreign key (grp_id) references grouped(grp_id) on update cascade on delete cascade
 );
 
-LOAD DATA LOCAL INFILE 'C:/Users/Loretta/Desktop/MyBook/app/static/scripts/CSV Files/user_data.csv' INTO TABLE user FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n' IGNORE 1 ROWS (user_id, f_name, l_name, username, email, password) SET password = PASSWORD(@Password);
+-- LOAD DATA LOCAL INFILE 'C:/Users/Loretta/Desktop/MyBook/app/static/scripts/CSV Files/user_data.csv' INTO TABLE user FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n' IGNORE 1 ROWS (user_id, f_name, l_name, username, email, password);
+-- LOAD DATA LOCAL INFILE 'C:/Users/Theda/Documents/GitHub/DB-2020/app/static/scripts/CSV Files/user_data_fake.csv' INTO TABLE user FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n' IGNORE 1 ROWS (user_id, f_name, l_name, username, email, password);

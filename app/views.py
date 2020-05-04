@@ -16,7 +16,7 @@ mydb = mysql.connector.connect(
     host="localhost",
     user="root",
     passwd="",
-    database="mybank2020"
+    database="mybook2020"
 )
 
 mycursor = mydb.cursor()
